@@ -1,0 +1,38 @@
+# Paste this at https://api.slack.com/apps -> Create New App -> From a manifest
+display_information:
+  name: EchoBot
+  description: Answers technical questions about Echo from Echo's own sources
+  background_color: "#0d6672"
+features:
+  app_home:
+    messages_tab_enabled: true            # lets people DM EchoBot
+    messages_tab_read_only_enabled: false
+  bot_user:
+    display_name: EchoBot
+    always_online: true
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read   # receive @EchoBot mentions
+      - chat:write          # reply in threads
+      - channels:history    # read thread history in public channels
+      - groups:history      # read thread history in private channels
+      - im:history          # read thread history in DMs
+      - channels:read       # tell internal channels from shared ones
+      - groups:read
+      - users:read          # resolve which workspace a caller belongs to
+      - reactions:write     # show the request is being worked on
+      - reactions:read      # count ✅ and 👎 on answers as feedback
+settings:
+  event_subscriptions:
+    bot_events:
+      - app_mention         # @EchoBot anywhere
+      - message.channels    # follow-up replies in a thread EchoBot just answered
+      - message.groups
+      - message.im
+      - reaction_added      # ✅ or 👎 on an answer
+  interactivity:
+    is_enabled: false
+  org_deploy_enabled: false
+  socket_mode_enabled: true
+  token_rotation_enabled: false

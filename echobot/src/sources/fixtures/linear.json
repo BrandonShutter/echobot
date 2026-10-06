@@ -1,0 +1,6 @@
+{
+  "_note": "ILLUSTRATIVE. Stand-in for Echo's Linear support team. New escalations created during the demo are written to data/escalations.json.",
+  "escalations": [
+    { "id": "SUP-104", "title": "nginx:1.27 CVE-2026-90044 patch", "status": "in_progress", "urgency": "normal", "tenant": "acme-corp", "summary": "Engineering is rebuilding nginx:1.27 with the upstream fix. No committed date.", "url": "https://mock.echobot.local/linear/SUP-104", "createdAt": "2026-10-01T15:20:00Z" }
+  ]
+}

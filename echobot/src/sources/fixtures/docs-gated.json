@@ -1,0 +1,20 @@
+{
+  "_note": "ILLUSTRATIVE. Stand-ins for pages in Echo's login-gated Mintlify docs (docs.echohq.com), which this demo cannot read. The registry host registry.echo.ai and the -fips image naming come from Echo's public site; the login flow and token names here are invented for the demo.",
+  "pages": [
+    {
+      "url": "https://mock.echobot.local/docs/registry/authenticate",
+      "title": "Authenticate to the Echo registry [illustrative]",
+      "body": "Echo images are published to registry.echo.ai. Pulling requires a pull token.\n\nCreate a pull token: in the Echo console, open Settings, then Registry tokens, then Create token. Tokens are scoped to your organization's namespace and can be read-only.\n\nLog in with Docker:\n```\necho \"$ECHO_PULL_TOKEN\" | docker login registry.echo.ai --username <your-org> --password-stdin\n```\n\nPull an image:\n```\ndocker pull registry.echo.ai/python:3.12\n```\n\nUse the image in a Dockerfile:\n```\nFROM registry.echo.ai/python:3.12\n```\n\nIn Kubernetes, create an image pull secret and reference it from your pod spec:\n```\nkubectl create secret docker-registry echo-registry \\\n  --docker-server=registry.echo.ai \\\n  --docker-username=<your-org> \\\n  --docker-password=\"$ECHO_PULL_TOKEN\"\n```\nThen add imagePullSecrets: [{ name: echo-registry }] to the pod spec."
+    },
+    {
+      "url": "https://mock.echobot.local/docs/images/fips-variants",
+      "title": "FIPS image variants [illustrative]",
+      "body": "FIPS builds of Echo images are published as separate images with a -fips suffix, for example jdk-fips, jre-fips, keycloak-fips, istio-proxy-fips, and python-fips. The standard image of the same name, including its latest tag, is not a FIPS build.\n\nFIPS variants ship with a FIPS 140-3 validated cryptographic module and run in FIPS mode by default. System crypto uses the OpenSSL 3 FIPS provider. Java images use the Bouncy Castle FIPS providers (BCFIPS and BCJSSE).\n\nIn FIPS mode, algorithms that are not FIPS approved fail at runtime instead of silently falling back. Code that uses MD5 or other non-approved algorithms for security purposes will raise errors.\n\nUse a -fips image as both the build and runtime base when the build itself performs cryptographic operations, or build in the standard image and copy artifacts into the -fips runtime image with a multi-stage Dockerfile."
+    },
+    {
+      "url": "https://mock.echobot.local/docs/migrate/dockerfile",
+      "title": "Migrate a Dockerfile to Echo base images [illustrative]",
+      "body": "Echo images are drop-in replacements for the upstream images of the same name. To migrate, change the registry in your FROM line and keep the tag.\n\nBefore:\n```\nFROM python:3.12\n```\nAfter:\n```\nFROM registry.echo.ai/python:3.12\n```\n\nEcho images are minimal and may not include a shell or package manager in the runtime variant. If your Dockerfile runs apt-get or apk in the final stage, move those steps into a build stage based on the -dev variant and copy the results into the runtime image."
+    }
+  ]
+}

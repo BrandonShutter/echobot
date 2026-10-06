@@ -1,0 +1,74 @@
+{
+  "_note": "ILLUSTRATIVE. Stand-in for Echo's private image repositories. The jdk-fips details mirror Echo's public catalog page; the python and python-fips records are invented for the demo.",
+  "images": [
+    {
+      "image": "python",
+      "tag": "latest",
+      "url": "https://mock.echobot.local/github/echo-images/python/latest",
+      "title": "echo-images: python:latest definition [illustrative]",
+      "base": "Echo minimal base, Python 3.13",
+      "fips": { "enabled": false, "notes": "Standard OpenSSL provider. Not a FIPS build. Use python-fips for FIPS 140-3." },
+      "keyPackages": ["python 3.13.7", "openssl 3.5.2", "pip 25.2"],
+      "dockerfileExcerpt": "FROM echo-base:minimal\nCOPY --from=build /opt/python /usr/local\nENV PATH=/usr/local/bin:$PATH",
+      "relatedTags": ["python:3.13", "python:3.12", "python-fips:3.12", "python-fips:latest"],
+      "updatedAt": "2026-09-29"
+    },
+    {
+      "image": "python",
+      "tag": "3.12",
+      "url": "https://mock.echobot.local/github/echo-images/python/3.12",
+      "title": "echo-images: python:3.12 definition [illustrative]",
+      "base": "Echo minimal base, Python 3.12",
+      "fips": { "enabled": false, "notes": "Standard OpenSSL provider. Not a FIPS build." },
+      "keyPackages": ["python 3.12.11", "openssl 3.5.2", "pip 25.2"],
+      "dockerfileExcerpt": "FROM echo-base:minimal\nCOPY --from=build /opt/python /usr/local",
+      "relatedTags": ["python:latest", "python-fips:3.12"],
+      "updatedAt": "2026-09-29"
+    },
+    {
+      "image": "python-fips",
+      "tag": "3.12",
+      "url": "https://mock.echobot.local/github/echo-images/python-fips/3.12",
+      "title": "echo-images: python-fips:3.12 definition [illustrative]",
+      "base": "Echo minimal base, Python 3.12, FIPS mode",
+      "fips": { "enabled": true, "standard": "FIPS 140-3", "module": "OpenSSL 3 FIPS provider", "notes": "FIPS mode is on by default. Python's hashlib raises an error for MD5 and other non-approved algorithms unless the call passes usedforsecurity=False." },
+      "keyPackages": ["python 3.12.11", "openssl 3.0.9 FIPS provider", "pip 25.2"],
+      "dockerfileExcerpt": "FROM echo-base:minimal-fips\nCOPY --from=build /opt/python /usr/local\nENV OPENSSL_CONF=/etc/ssl/openssl-fips.cnf",
+      "relatedTags": ["python-fips:latest", "python:3.12"],
+      "updatedAt": "2026-09-30"
+    },
+    {
+      "image": "python-fips",
+      "tag": "latest",
+      "url": "https://mock.echobot.local/github/echo-images/python-fips/latest",
+      "title": "echo-images: python-fips:latest definition [illustrative]",
+      "base": "Echo minimal base, Python 3.12, FIPS mode",
+      "fips": { "enabled": true, "standard": "FIPS 140-3", "module": "OpenSSL 3 FIPS provider", "notes": "Tracks python-fips:3.12." },
+      "keyPackages": ["python 3.12.11", "openssl 3.0.9 FIPS provider", "pip 25.2"],
+      "dockerfileExcerpt": "FROM registry.echo.ai/python-fips:3.12",
+      "relatedTags": ["python-fips:3.12"],
+      "updatedAt": "2026-09-30"
+    },
+    {
+      "image": "jdk-fips",
+      "tag": "openjdk-21",
+      "url": "https://mock.echobot.local/github/echo-images/jdk-fips/openjdk-21",
+      "title": "echo-images: jdk-fips:openjdk-21 definition [illustrative]",
+      "base": "OpenJDK 21 with Bouncy Castle FIPS",
+      "fips": { "enabled": true, "standard": "FIPS 140-3", "module": "Bouncy Castle BCFIPS and BCJSSE", "notes": "Build-time image. Pair with jre-fips:openjdk-21 for runtime." },
+      "keyPackages": ["openjdk 21", "bc-fips", "bctls-fips"],
+      "dockerfileExcerpt": "ENV JAVA_FIPS_CLASSPATH=/usr/share/java/bouncycastle-fips/*",
+      "relatedTags": ["jdk-fips:openjdk-17", "jdk-fips:latest", "jre-fips:openjdk-21"],
+      "updatedAt": "2026-09-22"
+    }
+  ],
+  "changelog": [
+    { "image": "python-fips", "tag": "3.12", "date": "2026-09-30", "summary": "Rebuilt on Python 3.12.11. Patched two OpenSSL advisories in the non-FIPS userland.", "cves": ["CVE-2026-90031", "CVE-2026-90032"], "url": "https://mock.echobot.local/github/echo-images/python-fips/CHANGELOG#2026-09-30", "title": "python-fips changelog, 2026-09-30 [illustrative]" },
+    { "image": "python", "tag": "3.12", "date": "2026-09-29", "summary": "Rebuilt on Python 3.12.11. Patched a high-severity zlib advisory.", "cves": ["CVE-2026-90021"], "url": "https://mock.echobot.local/github/echo-images/python/CHANGELOG#2026-09-29", "title": "python changelog, 2026-09-29 [illustrative]" },
+    { "image": "python", "tag": "3.12", "date": "2026-09-12", "summary": "Patched a medium-severity expat advisory.", "cves": ["CVE-2026-90011"], "url": "https://mock.echobot.local/github/echo-images/python/CHANGELOG#2026-09-12", "title": "python changelog, 2026-09-12 [illustrative]" }
+  ],
+  "issues": [
+    { "number": 412, "title": "pip install fails in python-fips when a package calls hashlib.md5", "state": "open", "url": "https://mock.echobot.local/github/echo-images/issues/412", "body": "Some packages call hashlib.md5() without usedforsecurity=False during install or import. In python-fips this raises ValueError: [digital envelope routines] unsupported. Workaround documented in the support runbook. Tracking upstream fixes per package.", "updatedAt": "2026-09-26" },
+    { "number": 398, "title": "Docs: FIPS variants page does not mention python-fips", "state": "open", "url": "https://mock.echobot.local/github/echo-images/issues/398", "body": "The FIPS variants docs page lists Java images first; python-fips is mentioned late. Customers miss it.", "updatedAt": "2026-09-18" }
+  ]
+}

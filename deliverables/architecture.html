@@ -1,0 +1,680 @@
+<title>EchoBot Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column for the argument, with the system diagram and
+   the wide reference tables breaking out to a wider measure. Reads like an
+   internal design doc an engineer would review, printed or on screen. */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --fg: #151a21;
+  --muted: #5a6371;
+  --line: #d7dce4;
+  --accent: #0d6672;
+  --accent-soft: #e2f0f1;
+  --gate: #a8550a;
+  --gate-soft: #fbeedd;
+  --code-bg: #edf0f4;
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --step--1: 0.8125rem;
+  --step-0: 1rem;
+  --step-1: 1.1875rem;
+  --step-2: 1.5rem;
+  --step-3: 2.25rem;
+
+  --measure: 44rem;
+  --wide: 70rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1217;
+    --surface: #151a21;
+    --fg: #e4e8ee;
+    --muted: #98a2b0;
+    --line: #2a313c;
+    --accent: #5bb8c4;
+    --accent-soft: #15292d;
+    --gate: #f0a24a;
+    --gate-soft: #2e2214;
+    --code-bg: #1b2129;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1217;
+  --surface: #151a21;
+  --fg: #e4e8ee;
+  --muted: #98a2b0;
+  --line: #2a313c;
+  --accent: #5bb8c4;
+  --accent-soft: #15292d;
+  --gate: #f0a24a;
+  --gate-soft: #2e2214;
+  --code-bg: #1b2129;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+.page {
+  padding-inline: 20px;
+  padding-block: 56px 96px;
+  display: grid;
+  gap: 64px;
+}
+.col { width: 100%; max-width: var(--measure); margin-inline: auto; min-width: 0; }
+.col-wide { width: 100%; max-width: var(--wide); margin-inline: auto; min-width: 0; }
+
+h1, h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+  margin: 0;
+}
+h1 { font-size: var(--step-3); line-height: 1.1; }
+h2 { font-size: var(--step-2); line-height: 1.2; }
+h3 { font-size: var(--step-1); font-weight: 600; margin: 0; letter-spacing: -0.005em; }
+p { margin: 0; }
+.prose { display: grid; gap: 16px; }
+.prose > ul, .prose > ol { margin: 0; padding-left: 1.25rem; display: grid; gap: 8px; }
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+.lede { font-size: var(--step-1); color: var(--fg); line-height: 1.5; }
+.muted { color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: 0.875em; }
+code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+/* header */
+.masthead { display: grid; gap: 20px; }
+.meta {
+  display: flex; flex-wrap: wrap; gap: 8px 28px;
+  font-size: var(--step--1); color: var(--muted);
+  border-top: 1px solid var(--line); padding-top: 16px;
+}
+.meta b { color: var(--fg); font-weight: 500; }
+
+/* section heads */
+.section { display: grid; gap: 24px; }
+.section-head { display: grid; gap: 8px; }
+
+/* principles */
+.principles { display: grid; gap: 0; border-top: 1px solid var(--line); }
+.principle {
+  display: grid; grid-template-columns: 9rem 1fr; gap: 20px;
+  padding-block: 18px; border-bottom: 1px solid var(--line);
+}
+.principle .k { font-weight: 600; }
+@media (max-width: 560px) { .principle { grid-template-columns: 1fr; gap: 6px; } }
+
+/* figure */
+figure { margin: 0; display: grid; gap: 14px; }
+.diagram-frame {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow-x: auto;
+  padding: 16px;
+}
+.diagram-frame svg { display: block; width: 100%; min-width: 860px; height: auto; color: var(--fg); }
+figcaption { font-size: var(--step--1); color: var(--muted); max-width: var(--measure); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: var(--step--1); color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.swatch { width: 22px; height: 0; border-top: 2px solid currentColor; }
+.swatch.gate { border-top: 2px dashed var(--gate); }
+.swatch.accent { border-top-color: var(--accent); }
+
+/* steps */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: step; border-top: 1px solid var(--line); }
+.steps li {
+  counter-increment: step;
+  display: grid; grid-template-columns: 2.25rem 1fr; gap: 16px;
+  padding-block: 18px; border-bottom: 1px solid var(--line);
+}
+.steps li::before {
+  content: counter(step);
+  font-family: var(--font-mono); font-size: var(--step--1);
+  color: var(--accent);
+  width: 1.75rem; height: 1.75rem; border-radius: 50%;
+  border: 1px solid var(--accent);
+  display: grid; place-items: center; margin-top: 2px;
+}
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+
+/* tables */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; line-height: 1.5; }
+th, td { text-align: left; vertical-align: top; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+thead th {
+  font-family: var(--font-mono); font-weight: 500; font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+  background: var(--bg); white-space: nowrap;
+}
+tbody tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; white-space: nowrap; }
+.tools-table { min-width: 980px; }
+.features-table { min-width: 720px; }
+.matrix-table { min-width: 620px; }
+.qa-table { min-width: 760px; }
+.pill {
+  display: inline-block; font-family: var(--font-mono); font-size: 0.72rem;
+  padding: 1px 8px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--line); color: var(--muted);
+}
+.pill.gate { color: var(--gate); border-color: var(--gate); background: var(--gate-soft); }
+.pill.ok { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.scopes { display: flex; flex-wrap: wrap; gap: 4px; }
+.scopes code { white-space: nowrap; }
+
+/* callout */
+.callout {
+  border: 1px solid var(--gate);
+  background: var(--gate-soft);
+  border-radius: 10px;
+  padding: 18px 20px;
+  display: grid; gap: 8px;
+}
+.callout .eyebrow { color: var(--gate); }
+
+/* production gaps */
+.gaps { display: grid; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); gap: 16px; }
+.gap {
+  border-top: 2px solid var(--fg);
+  padding-top: 14px;
+  display: grid; gap: 8px; align-content: start;
+}
+.gap .tag { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+footer { font-size: var(--step--1); color: var(--muted); border-top: 1px solid var(--line); padding-top: 18px; display: grid; gap: 6px; }
+
+@media print {
+  :root, :root[data-theme="dark"] {
+    --bg: #ffffff; --surface: #ffffff; --fg: #151a21; --muted: #4f5866; --line: #d7dce4;
+    --accent: #0d6672; --accent-soft: #e2f0f1; --gate: #a8550a; --gate-soft: #fbeedd; --code-bg: #edf0f4;
+    color-scheme: light;
+  }
+  @page { size: letter; margin: 0.55in 0.5in; }
+  body { font-size: 10pt; }
+  .page { padding: 0; gap: 26px; }
+  .col, .col-wide { max-width: none; }
+  .diagram-frame, .table-wrap { overflow: visible; }
+  .diagram-frame svg, .tools-table, .features-table, .matrix-table, .qa-table { min-width: 0; }
+  table { font-size: 8.5pt; }
+  th, td { padding: 6px 8px; }
+  .scopes code { white-space: normal; }
+  td:first-child { white-space: normal; }
+  figure, tr, .principle, .steps li, .gap, .callout, .table-wrap { break-inside: avoid; }
+  .table-wrap:has(.tools-table) { break-inside: auto; }
+  .section-head { break-inside: avoid; break-after: avoid; }
+  h2, h3 { break-after: avoid; }
+  a { color: var(--accent); text-decoration: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+@media (max-width: 560px) {
+  :root { --step-3: 1.875rem; --step-2: 1.3rem; }
+  .page { gap: 48px; padding-block: 36px 64px; }
+}
+</style>
+
+<main class="page">
+
+  <header class="col masthead">
+    <div class="eyebrow">Echo TAM home assignment · Part 1</div>
+    <h1>EchoBot architecture</h1>
+    <p class="lede">EchoBot answers technical questions about Echo in Slack. Its main user is the customer, asking in their shared channel with Echo. Its job is to get them unblocked from Echo's own sources without waiting on their TAM, and when it can't, to hand the problem to Echo's team with everything needed so nobody asks the customer the same questions twice. It runs on Claude with tool use and reads from six sources.</p>
+    <div class="meta">
+      <span><b>Brandon Shutter</b></span>
+      <span>October 2026</span>
+      <span>Companion file: <code>system_prompt.md</code></span>
+    </div>
+  </header>
+
+  <section class="col section" aria-labelledby="job">
+    <div class="section-head">
+      <div class="eyebrow">The job</div>
+      <h2 id="job">Take the answerable questions off the TAM's plate</h2>
+    </div>
+    <div class="prose">
+      <p>A TAM's time goes to two kinds of work: the relationship, and questions that already have an answer somewhere. EchoBot exists to take the second kind. Every question it resolves from the docs is one the TAM didn't field, and every answer that links the right page teaches the customer where to look next time.</p>
+      <p>That only works if customers trust it, so it's grounded in Echo's sources and says "I couldn't find that" instead of guessing. And it only helps the TAM if it never becomes a wall. A customer who asks for a person gets one immediately, and anything that looks like an outage or a security incident goes to Echo right away.</p>
+    </div>
+    <div class="table-wrap">
+      <table class="features-table">
+        <thead><tr><th>Measure</th><th>What counts</th><th>Why it's paired with the others</th></tr></thead>
+        <tbody>
+          <tr><td>Resolved without a human</td><td>The customer confirmed the fix worked, in the thread or with a ✅ reaction, and no escalation was opened.</td><td>The headline number. On its own it rewards a bot that never escalates.</td></tr>
+          <tr><td>Escalation quality</td><td>How often whoever picked up an escalation had to go back to the customer for something the bot should have collected.</td><td>Keeps the bot honest about handoffs, not just deflection.</td></tr>
+          <tr><td>Docs gaps found</td><td>Customer questions the published docs couldn't answer, and internal runbooks that keep answering customer problems.</td><td>Turns every miss into a page Echo should write, so the same question doesn't reach a TAM twice.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">All three come from the bot's event log, summarized in a weekly report for the TAM team.</p>
+  </section>
+
+  <section class="col section" aria-labelledby="principles">
+    <div class="section-head">
+      <div class="eyebrow">Design principles</div>
+      <h2 id="principles">Three decisions the design follows from</h2>
+    </div>
+    <div class="principles">
+      <div class="principle">
+        <div class="k">Code decides who sees what</div>
+        <p>The model never decides whether a caller may see a customer's data. Code resolves the caller and the channel before any request reaches Claude, and the tenant-data tools refuse to run if the tenant isn't allowed in that channel. The system prompt repeats the rule, but it isn't the boundary.</p>
+      </div>
+      <div class="principle">
+        <div class="k">Grounded and cited</div>
+        <p>Every factual answer comes from a tool result and cites it. The prompt requires this, and code checks it after the answer is written: a link that didn't come from a tool result means the answer is discarded and the bot says it couldn't find the information.</p>
+      </div>
+      <div class="principle">
+        <div class="k">A frozen prompt</div>
+        <p>The system prompt is identical on every request, so it caches along with the tool definitions. Who is asking arrives as a separate system-role message, which a user can't forge by typing into Slack.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="col-wide section" aria-labelledby="diagram">
+    <div class="col section-head" style="max-width: var(--measure); margin-inline: 0;">
+      <div class="eyebrow">System diagram</div>
+      <h2 id="diagram">How a question flows</h2>
+    </div>
+    <figure>
+      <div class="diagram-frame">
+        <svg viewBox="0 0 1200 500" role="img" aria-label="Every answer and every piece of customer feedback goes to an event log that feeds a weekly TAM report. A Slack mention goes to the Bolt app, which resolves the caller and sends the question and caller context to Claude. Claude calls tools through a tool executor, which reads Mintlify, GitHub, Notion, and Linear, and reads Retool only after a tenant check. Claude's answer passes a citation check in the Bolt app before the reply is posted to the Slack thread.">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+            </marker>
+            <marker id="arrow-gate" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--gate)"></path>
+            </marker>
+          </defs>
+
+          <g font-family="Geist, ui-sans-serif, system-ui, sans-serif" fill="currentColor">
+
+            <!-- Slack -->
+            <rect x="24" y="110" width="112" height="240" rx="10" stroke="currentColor" stroke-width="1.5" style="fill:var(--surface)"></rect>
+            <text x="80" y="214" text-anchor="middle" font-size="18" font-weight="600">Slack</text>
+            <text x="80" y="238" text-anchor="middle" font-size="12" style="fill:var(--muted)">@EchoBot</text>
+            <text x="80" y="256" text-anchor="middle" font-size="12" style="fill:var(--muted)">thread</text>
+
+            <!-- Bolt app frame -->
+            <rect x="236" y="96" width="200" height="268" rx="12" fill="none" stroke-width="1.5" stroke-dasharray="4 4" style="stroke:var(--line)"></rect>
+            <text x="336" y="86" text-anchor="middle" font-size="12" font-family="Geist Mono, ui-monospace, monospace" style="fill:var(--muted)">BOLT APP · SOCKET MODE</text>
+
+            <rect x="252" y="114" width="168" height="66" rx="8" stroke="currentColor" stroke-width="1.5" style="fill:var(--surface)"></rect>
+            <text x="336" y="142" text-anchor="middle" font-size="14" font-weight="600">Resolve caller</text>
+            <text x="336" y="162" text-anchor="middle" font-size="12" style="fill:var(--muted)">user, team, channel</text>
+
+            <rect x="252" y="280" width="168" height="66" rx="8" stroke="currentColor" stroke-width="1.5" style="fill:var(--surface)"></rect>
+            <text x="336" y="308" text-anchor="middle" font-size="14" font-weight="600">Check citations</text>
+            <text x="336" y="328" text-anchor="middle" font-size="12" style="fill:var(--muted)">links match tool results</text>
+
+            <!-- Claude -->
+            <rect x="552" y="110" width="176" height="240" rx="10" stroke-width="1.5" style="fill:var(--accent-soft);stroke:var(--accent)"></rect>
+            <text x="640" y="160" text-anchor="middle" font-size="20" font-weight="600" style="fill:var(--accent)">Claude</text>
+            <text x="640" y="180" text-anchor="middle" font-size="12" style="fill:var(--muted)">Messages API</text>
+            <line x1="572" y1="198" x2="708" y2="198" style="stroke:var(--line)"></line>
+            <text x="640" y="222" text-anchor="middle" font-size="12">system prompt</text>
+            <text x="640" y="240" text-anchor="middle" font-size="12">tool definitions</text>
+            <text x="640" y="258" text-anchor="middle" font-size="11" style="fill:var(--muted)">cached prefix</text>
+            <line x1="572" y1="274" x2="708" y2="274" style="stroke:var(--line)"></line>
+            <text x="640" y="298" text-anchor="middle" font-size="12">thread history</text>
+            <text x="640" y="316" text-anchor="middle" font-size="12">caller_context</text>
+
+            <!-- Tool executor -->
+            <rect x="842" y="150" width="148" height="160" rx="10" stroke="currentColor" stroke-width="1.5" style="fill:var(--surface)"></rect>
+            <text x="916" y="190" text-anchor="middle" font-size="14" font-weight="600">Tool executor</text>
+            <text x="916" y="214" text-anchor="middle" font-size="12" style="fill:var(--muted)">validate input</text>
+            <text x="916" y="232" text-anchor="middle" font-size="12" style="fill:var(--muted)">check tenant access</text>
+            <text x="916" y="250" text-anchor="middle" font-size="12" style="fill:var(--muted)">wrap result as data</text>
+            <text x="916" y="268" text-anchor="middle" font-size="12" style="fill:var(--muted)">attach source URL</text>
+
+            <!-- Sources -->
+            <g font-size="13" font-weight="600">
+              <rect x="1060" y="56" width="120" height="44" rx="8" stroke="currentColor" stroke-width="1.5" style="fill:var(--surface)"></rect>
+              <text x="1120" y="83" text-anchor="middle">Mintlify</text>
+              <rect x="1060" y="116" width="120" height="44" rx="8" stroke="currentColor" stroke-width="1.5" style="fill:var(--surface)"></rect>
+              <text x="1120" y="143" text-anchor="middle">GitHub</text>
+              <rect x="1060" y="176" width="120" height="44" rx="8" stroke="currentColor" stroke-width="1.5" style="fill:var(--surface)"></rect>
+              <text x="1120" y="203" text-anchor="middle">Notion</text>
+              <rect x="1060" y="236" width="120" height="44" rx="8" stroke="currentColor" stroke-width="1.5" style="fill:var(--surface)"></rect>
+              <text x="1120" y="263" text-anchor="middle">Linear</text>
+              <rect x="1060" y="336" width="120" height="44" rx="8" stroke-width="1.5" style="fill:var(--gate-soft);stroke:var(--gate)"></rect>
+              <text x="1120" y="363" text-anchor="middle" style="fill:var(--gate)">Retool</text>
+            </g>
+            <text x="1120" y="40" text-anchor="middle" font-size="11" font-family="Geist Mono, ui-monospace, monospace" style="fill:var(--muted)">SOURCES</text>
+
+            <!-- Slack -> resolver -->
+            <line x1="136" y1="147" x2="248" y2="147" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"></line>
+            <text x="192" y="138" text-anchor="middle" font-size="12" style="fill:var(--muted)">mention</text>
+
+            <!-- resolver -> Claude -->
+            <line x1="420" y1="147" x2="548" y2="147" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"></line>
+            <text x="484" y="138" text-anchor="middle" font-size="12" style="fill:var(--muted)">question +</text>
+            <text x="484" y="166" text-anchor="middle" font-size="12" style="fill:var(--muted)">caller context</text>
+
+            <!-- Claude <-> executor -->
+            <line x1="728" y1="206" x2="838" y2="206" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"></line>
+            <text x="784" y="197" text-anchor="middle" font-size="12" style="fill:var(--muted)">tool_use</text>
+            <line x1="842" y1="254" x2="732" y2="254" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"></line>
+            <text x="786" y="274" text-anchor="middle" font-size="12" style="fill:var(--muted)">tool_result</text>
+
+            <!-- Claude -> citation check -->
+            <line x1="552" y1="313" x2="424" y2="313" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"></line>
+            <text x="488" y="304" text-anchor="middle" font-size="12" style="fill:var(--muted)">answer +</text>
+            <text x="488" y="332" text-anchor="middle" font-size="12" style="fill:var(--muted)">citations</text>
+
+            <!-- citation check -> Slack -->
+            <line x1="252" y1="313" x2="140" y2="313" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"></line>
+            <text x="196" y="304" text-anchor="middle" font-size="12" style="fill:var(--muted)">reply</text>
+
+            <!-- executor -> sources -->
+            <g stroke="currentColor" stroke-width="1.25" fill="none">
+              <path d="M990 205 L1024 205 L1024 78 L1056 78" marker-end="url(#arrow)"></path>
+              <path d="M1024 138 L1056 138" marker-end="url(#arrow)"></path>
+              <path d="M1024 198 L1056 198" marker-end="url(#arrow)"></path>
+              <path d="M990 230 L1024 230 L1024 258 L1056 258" marker-end="url(#arrow)"></path>
+            </g>
+            <path d="M990 280 L1024 280 L1024 358 L1056 358" fill="none" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow-gate)" style="stroke:var(--gate)"></path>
+            <rect x="1002" y="304" width="44" height="22" rx="4" stroke-width="1" style="fill:var(--gate-soft);stroke:var(--gate)"></rect>
+            <text x="1024" y="319" text-anchor="middle" font-size="10" font-family="Geist Mono, ui-monospace, monospace" style="fill:var(--gate)">GATE</text>
+            <!-- event log and feedback -->
+            <line x1="336" y1="364" x2="336" y2="414" stroke="currentColor" stroke-width="1.25" stroke-dasharray="3 3" marker-end="url(#arrow)"></line>
+            <text x="346" y="394" font-size="11" style="fill:var(--muted)">every answer</text>
+            <path d="M80 350 L80 446 L248 446" fill="none" stroke="currentColor" stroke-width="1.25" stroke-dasharray="3 3" marker-end="url(#arrow)"></path>
+            <text x="164" y="438" text-anchor="middle" font-size="11" style="fill:var(--muted)">✅ / 👎, "that worked"</text>
+            <rect x="252" y="418" width="168" height="58" rx="8" stroke="currentColor" stroke-width="1.5" style="fill:var(--surface)"></rect>
+            <text x="336" y="442" text-anchor="middle" font-size="13" font-weight="600">Event log</text>
+            <text x="336" y="461" text-anchor="middle" font-size="11" style="fill:var(--muted)">weekly TAM report</text>
+            <text x="1120" y="400" text-anchor="middle" font-size="11" style="fill:var(--gate)">only if tenant is</text>
+            <text x="1120" y="415" text-anchor="middle" font-size="11" style="fill:var(--gate)">visible in channel</text>
+          </g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><span class="swatch"></span>read or write call</span>
+        <span><span class="swatch gate"></span>tenant data, checked against the caller and channel before it runs</span>
+      </div>
+      <figcaption>The model sits in the middle and never touches a source directly. Everything it reads goes through the tool executor, and everything it says passes the citation check before Slack sees it. Every answer, and every ✅ or 👎 a customer leaves on one, lands in the event log behind the weekly TAM report.</figcaption>
+    </figure>
+  </section>
+
+  <section class="col section" aria-labelledby="flow">
+    <div class="section-head">
+      <div class="eyebrow">Data flow</div>
+      <h2 id="flow">One request, step by step</h2>
+    </div>
+    <ol class="steps">
+      <li><div>
+        <h3>The question arrives</h3>
+        <p>Slack delivers an <code>app_mention</code> event over Socket Mode, a direct message to the bot, or a plain reply in a thread where EchoBot just answered, so a customer can follow up without mentioning the bot again. Once an Echo person replies in the thread, the bot steps back until someone mentions it. The Bolt app acknowledges right away and adds a reaction, so the person asking can see it's being worked on.</p>
+      </div></li>
+      <li><div>
+        <h3>Resolve the caller and the channel</h3>
+        <p><code>users.info</code> gives the caller's workspace, and <code>conversations.info</code> tells whether the channel is internal, a direct message, or shared with an external organization. A caller from Echo's workspace is an <code>echo_employee</code>. A caller from another workspace is a <code>customer</code>, mapped to a tenant through a table of Slack workspace IDs to tenant IDs. The tenants allowed in the channel are the tenants of every external workspace in it.</p>
+      </div></li>
+      <li><div>
+        <h3>Build the request</h3>
+        <p>The frozen system prompt and tool definitions come first and are cached. The thread so far comes from <code>conversations.replies</code> and becomes prior turns. Then the new question, followed by <code>caller_context</code> as a system-role message.</p>
+      </div></li>
+      <li><div>
+        <h3>Claude chooses tools</h3>
+        <p>Claude returns one or more <code>tool_use</code> blocks, often in parallel, for example the image definition and the docs together. If it tries to answer an Echo question without calling any tool, the loop rejects that turn and asks again, because the prompt's grounding rule can't be enforced by forcing a tool call on current models.</p>
+      </div></li>
+      <li><div>
+        <h3>Execute, check, and wrap</h3>
+        <p>The executor validates each input against the tool's schema. For the tenant tools it checks the requested tenant against <code>caller_context</code>, which comes from step 2, not from anything the model wrote. Results come back with their source URL and ID, wrapped so the model can tell content from instructions. All results return in one message, and the loop repeats until Claude finishes, with a cap on iterations.</p>
+      </div></li>
+      <li><div>
+        <h3>Verify citations</h3>
+        <p>Every link in the answer has to match a URL a tool returned during this request. If one doesn't, the answer is replaced with "I couldn't find that in Echo's sources" and an offer to escalate, and the miss is logged.</p>
+      </div></li>
+      <li><div>
+        <h3>Reply in the thread</h3>
+        <p><code>chat.postMessage</code> with the thread's timestamp. The question, the tools called, the sources, any escalation, token usage, and latency go to the event log. When the customer later says the fix worked, or reacts with ✅ or 👎, that's logged against the same thread.</p>
+      </div></li>
+    </ol>
+  </section>
+
+  <section class="col section" aria-labelledby="features">
+    <div class="section-head">
+      <div class="eyebrow">Claude features</div>
+      <h2 id="features">What the bot uses from Claude, and why</h2>
+    </div>
+    <div class="table-wrap">
+      <table class="features-table">
+        <thead><tr><th>Feature</th><th>How it's used</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>System prompt</td><td>Identity, scope, source priority, grounding, citations, tone, escalation, and hard limits. See <code>system_prompt.md</code>.</td><td>The one place behavior is defined. It never changes between requests.</td></tr>
+          <tr><td>Tool use</td><td>One client tool per source operation, such as <code>search_docs</code>, <code>get_image_definition</code>, and <code>get_open_cves</code>. Each tool has a tight Zod schema.</td><td>Claude picks the tool, the code runs it. The schema is validated before the tool runs, so a malformed call never reaches a source.</td></tr>
+          <tr><td>Parallel tool calls</td><td>Docs and GitHub queried in the same turn.</td><td>Fewer round trips for the questions that need two sources.</td></tr>
+          <tr><td>Prompt caching</td><td>A cache breakpoint after the system prompt and tool definitions.</td><td>They're most of every request. The eval suite should fail if no case reads from cache, so a change that silently breaks caching gets caught.</td></tr>
+          <tr><td>Mid-conversation system message</td><td>Carries <code>caller_context</code> on every turn.</td><td>It's the operator channel, so a user can't forge it, and adding it doesn't invalidate the cached prefix.</td></tr>
+          <tr><td>Multi-turn history</td><td>The Slack thread becomes prior turns.</td><td>A follow-up like "and the FIPS variant?" keeps its context.</td></tr>
+          <tr><td>Adaptive thinking and effort</td><td>Claude Opus 5.5, with low effort for lookups and higher effort for troubleshooting threads.</td><td>Troubleshooting benefits from more reasoning. Lookups don't, and lower effort is faster and cheaper.</td></tr>
+          <tr><td>Refusal handling</td><td>The loop checks <code>stop_reason</code> before reading content or running tools, and uses the API's server-side fallback.</td><td>A safety classifier can occasionally decline a security-flavored question. The bot should degrade to an escalation offer, never to a broken reply.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">The loop runs on the TypeScript SDK's tool runner, so it isn't hand-written. The tenant check lives inside each tenant tool, and the no-tool-call retry and citation check wrap the runner.</p>
+  </section>
+
+  <section class="col-wide section" aria-labelledby="access">
+    <div class="col section-head" style="max-width: var(--measure); margin-inline: 0;">
+      <div class="eyebrow">Tool access</div>
+      <h2 id="access">How the bot reaches each source</h2>
+      <p class="muted">Every credential is read-only unless the bot has to write, scoped to the narrowest set of resources, and stored in a secrets manager, never in the repo.</p>
+    </div>
+    <div class="table-wrap">
+      <table class="tools-table">
+        <thead><tr><th>Source</th><th>What the bot gets from it</th><th>API</th><th>Credential</th><th>Minimum access</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Slack</td>
+            <td>The interface. Mentions in, thread history, caller and channel identity, replies out.</td>
+            <td>Events API over Socket Mode, Web API</td>
+            <td>App-level token (<code>xapp-</code>) for the socket, bot token (<code>xoxb-</code>) for API calls</td>
+            <td><div class="scopes"><code>connections:write</code> <code>app_mentions:read</code> <code>chat:write</code> <code>channels:history</code> <code>groups:history</code> <code>im:history</code> <code>channels:read</code> <code>groups:read</code> <code>users:read</code> <code>reactions:write</code> <code>reactions:read</code></div><span class="muted">Events: <code>app_mention</code>, <code>message.channels</code>, <code>message.groups</code>, <code>message.im</code>, <code>reaction_added</code></span></td>
+          </tr>
+          <tr>
+            <td>Mintlify</td>
+            <td>Published product docs: setup, feature guides, API reference.</td>
+            <td>Mintlify docs are MDX files in a Git repo, so the bot indexes that repo directly. The site at docs.echohq.com requires a customer login, so crawling it isn't an option.</td>
+            <td>The same GitHub App as below, installed on the docs repo</td>
+            <td><div class="scopes"><code>contents: read</code></div><span class="muted">on the docs repo only. A push to the default branch triggers a re-index.</span></td>
+          </tr>
+          <tr>
+            <td>GitHub</td>
+            <td>Image definitions, Dockerfiles, patch changelogs, open issues. The source of truth for what an image contains.</td>
+            <td>REST and GraphQL</td>
+            <td>A GitHub App with short-lived installation tokens, never a personal token</td>
+            <td><div class="scopes"><code>contents: read</code> <code>issues: read</code> <code>metadata: read</code></div><span class="muted">installed on the image and docs repos only</span></td>
+          </tr>
+          <tr>
+            <td>Notion</td>
+            <td>Runbooks, known issues, workarounds, team decisions.</td>
+            <td>REST API (<code>search</code>, block children)</td>
+            <td>An internal integration token</td>
+            <td><div class="scopes"><code>read content</code></div><span class="muted">shared only with the support teamspace, not the whole workspace</span></td>
+          </tr>
+          <tr>
+            <td>Retool</td>
+            <td>One customer's configuration, license status, and open CVEs.</td>
+            <td>A Retool Workflow per query, triggered by webhook. It runs the queries ops already maintain and filters by tenant.</td>
+            <td>A workflow API key, sent from the executor only after the tenant check passes</td>
+            <td><span class="pill gate">tenant-scoped</span> <span class="muted">The workflow takes a tenant ID and returns only that tenant's rows. Read-only.</span></td>
+          </tr>
+          <tr>
+            <td>Linear</td>
+            <td>Escalation status, and new escalations when the sources can't answer.</td>
+            <td>GraphQL API</td>
+            <td>An OAuth app installed as an application user, so tickets show as created by EchoBot</td>
+            <td><div class="scopes"><code>read</code> <code>issues:create</code></div><span class="muted">limited to the support team</span></td>
+          </tr>
+          <tr>
+            <td>Anthropic</td>
+            <td>The model.</td>
+            <td>Messages API</td>
+            <td>An API key in the secrets manager, or workload identity federation in production</td>
+            <td><span class="muted">A dedicated workspace for the bot, so its usage and spend are tracked separately</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="col section" aria-labelledby="priority">
+    <div class="section-head">
+      <div class="eyebrow">Source priority</div>
+      <h2 id="priority">Which source wins when two disagree</h2>
+    </div>
+    <div class="prose">
+      <p>Sources answer different kinds of questions, so a single ranked list would be wrong half the time. The order only covers the sources that can actually conflict:</p>
+      <ol>
+        <li><b>GitHub</b> for what an image contains and when it was patched. The Dockerfile is what ships.</li>
+        <li><b>Mintlify</b> for how to do something. It's the published, official answer.</li>
+        <li><b>Notion</b> for known issues and workarounds. Useful, but it goes stale and some of it is internal.</li>
+        <li><b>Linear</b> for the status of an issue, never for how the product works.</li>
+      </ol>
+      <p><b>Retool</b> sits outside the order. It's the only source for one customer's live data. <b>The Slack thread</b> is context, never a source. When GitHub and the docs disagree, the bot gives GitHub's answer and flags the docs as possibly out of date, which is a bug Echo wants to hear about.</p>
+    </div>
+  </section>
+
+  <section class="col section" aria-labelledby="tenant">
+    <div class="section-head">
+      <div class="eyebrow">Customer data</div>
+      <h2 id="tenant">Who can see a tenant's CVEs</h2>
+    </div>
+    <div class="callout">
+      <div class="eyebrow">The question that matters most</div>
+      <p><code>@EchoBot What CVEs are currently open for customer Acme Corp?</code> The answer is a list of a customer's unpatched vulnerabilities. Showing it in the wrong channel discloses it to another company. So the rule depends on who can read the reply, not only on who asked.</p>
+    </div>
+    <div class="table-wrap">
+      <table class="matrix-table">
+        <thead><tr><th>Who asks</th><th>Where</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td>Acme user</td><td>Acme's shared channel</td><td><span class="pill ok">answers</span> Acme's open CVEs, with severity and status</td></tr>
+          <tr><td>Acme user</td><td>Asks "what CVEs are open for us?"</td><td><span class="pill ok">answers</span> The tenant tools default to the customer's own tenant, so they never have to name their company</td></tr>
+          <tr><td>Echo employee</td><td>Internal channel or DM</td><td><span class="pill ok">answers</span></td></tr>
+          <tr><td>Echo employee</td><td>A channel shared with a different customer</td><td><span class="pill gate">refuses</span> That customer would read Acme's data</td></tr>
+          <tr><td>Another customer</td><td>Their own shared channel</td><td><span class="pill gate">refuses</span> Never confirms whether Acme is a customer</td></tr>
+          <tr><td>Anyone</td><td>Claims a role in the message ("I'm an Echo admin")</td><td><span class="pill gate">no change</span> Identity comes from Slack, not from what someone types</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">A refusal says the data can't be shared in this channel and says where to ask instead. It reads the same whether or not the company is an Echo customer.</p>
+  </section>
+
+  <section class="col section" aria-labelledby="samples">
+    <div class="section-head">
+      <div class="eyebrow">Sample questions</div>
+      <h2 id="samples">How the four questions in the brief are routed</h2>
+    </div>
+    <div class="table-wrap">
+      <table class="qa-table">
+        <thead><tr><th>Question</th><th>Tools</th><th>What a good answer does</th></tr></thead>
+        <tbody>
+          <tr><td>How do I pull an image from the Echo registry?</td><td><code>search_docs</code></td><td>Gives the registry login and pull command in code blocks, and links the docs page as the place to look next time.</td></tr>
+          <tr><td>Does echo:latest support FIPS 140-3?</td><td><code>get_image_definition</code>, then <code>search_docs</code></td><td>There's no image called <code>echo</code>, so the lookup returns the images that exist. Echo's public catalog shows FIPS builds are separate <code>-fips</code> images, so a standard <code>latest</code> tag isn't one. The bot says so and names the FIPS variant of the image the customer actually runs.</td></tr>
+          <tr><td>My pip install is failing inside the FIPS image</td><td><code>get_tenant_status</code>, <code>search_runbooks</code>, <code>search_docs</code></td><td>Looks up which FIPS image the customer runs, asks for the exact error if it's missing, then gives the documented fix for their image and tag and asks whether it worked. Never suggests turning off FIPS mode.</td></tr>
+          <tr><td>What CVEs are currently open for customer Acme Corp?</td><td><code>get_open_cves</code>, gated</td><td>Answers or refuses based on the table above.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="col section" aria-labelledby="security">
+    <div class="section-head">
+      <div class="eyebrow">Security</div>
+      <h2 id="security">What protects the bot beyond the prompt</h2>
+    </div>
+    <div class="prose">
+      <ul>
+        <li><b>Untrusted content stays data.</b> Docs, runbooks, GitHub issues from outside contributors, and logs pasted by customers can all contain text written to look like instructions. Tool results are wrapped and labeled as content, the prompt says only the system prompt and caller context set behavior, and the tools that matter are gated in code regardless.</li>
+        <li><b>Least privilege everywhere.</b> Read-only credentials except the Linear write, each scoped to specific repos, teamspaces, or workflows.</li>
+        <li><b>No secrets in replies.</b> Tool results pass through a filter that redacts strings shaped like tokens and keys before the model sees them.</li>
+        <li><b>An audit trail.</b> Every request logs the caller, channel, tools called, tenants touched, and citations, so "who saw Acme's CVEs, and where" has an answer.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-wide section" aria-labelledby="production">
+    <div class="col section-head" style="max-width: var(--measure); margin-inline: 0;">
+      <div class="eyebrow">Production</div>
+      <h2 id="production">Gaps to close before production</h2>
+      <p class="muted">The design above works for a pilot. These are the gaps I'd close before customers rely on it, roughly in the order I'd close them.</p>
+    </div>
+    <div class="gaps">
+      <div class="gap">
+        <div class="tag">Missing</div>
+        <h3>A source of truth for tenant mapping</h3>
+        <p>The tenant check depends on knowing which Slack workspace belongs to which tenant. That mapping probably lives in someone's head today. It needs to be a real table, owned by ops, kept in sync when a customer's Slack Connect channel is set up. Until it exists, the bot should only answer tenant questions for Echo employees in internal channels.</p>
+      </div>
+      <div class="gap">
+        <div class="tag">Missing</div>
+        <h3>An internal flag on Notion pages</h3>
+        <p>Some runbooks are internal only. Right now the prompt asks the model to judge that. In production it should be a property on each page, and the Notion tool should drop internal pages for customer callers before the model ever sees them.</p>
+      </div>
+      <div class="gap">
+        <div class="tag">Better</div>
+        <h3>Evals in CI, on real traffic</h3>
+        <p>A fixed set of eval cases should run in CI on every change to the prompt, the tools, or the model: the four sample questions, cross-tenant requests, an instruction planted in a runbook, and a question no source answers. Then it should grow from real questions: every escalation and every 👎 becomes a new case. The cross-tenant cases must never regress.</p>
+      </div>
+      <div class="gap">
+        <div class="tag">Better</div>
+        <h3>Close the docs loop</h3>
+        <p>The weekly report lists docs gaps and the runbooks answering customer questions. Each one should open a ticket for whoever owns the docs, so a question that reached the bot twice becomes a published page instead of a third Slack thread.</p>
+      </div>
+      <div class="gap">
+        <div class="tag">Better</div>
+        <h3>Freshness</h3>
+        <p>The docs index rebuilds on every merge to the docs repo, GitHub and Notion are queried live, and every answer shows when its source was last updated, so nobody follows a two-year-old runbook without knowing it.</p>
+      </div>
+      <div class="gap">
+        <div class="tag">Better</div>
+        <h3>Rate limits and cost controls</h3>
+        <p>A per-tenant and per-user rate limit, a cap on tool iterations per request, effort tuned per kind of question, and a dashboard on token spend and cache hit rate. A runaway loop or one chatty channel shouldn't show up first on the invoice.</p>
+      </div>
+      <div class="gap">
+        <div class="tag">Missing</div>
+        <h3>A data agreement for customer messages</h3>
+        <p>Customer Slack messages and tenant data go to the model provider. Before customers use it, that needs to be covered by Echo's data processing terms with Anthropic and disclosed to customers. FedRAMP-minded customers will ask.</p>
+      </div>
+      <div class="gap">
+        <div class="tag">Better</div>
+        <h3>A person on escalations</h3>
+        <p>Escalations need an owner and a response time, or the bot's honest "I'll escalate this" becomes a dead end. The handoff carries the error, the images, what was found, and what the customer tried. Early on, I'd want a TAM reviewing a sample of answers each week as well as the escalations, and scoring how often a handoff still needed a follow-up question.</p>
+      </div>
+      <div class="gap">
+        <div class="tag">Better</div>
+        <h3>Versioned prompts</h3>
+        <p>The system prompt lives in the repo, changes go through review, and every logged answer records which prompt version produced it. When an answer is wrong, you can tell whether the prompt, a source, or the model caused it.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="col">
+    <p>Brandon Shutter · brandon@brandonshutter.com</p>
+  </footer>
+
+</main>

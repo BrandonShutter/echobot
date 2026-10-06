@@ -1,0 +1,8 @@
+node_modules/
+.env
+data/escalations.json
+data/docs-raw/
+*.log
+demo-identities.json
+data/docs-index.json
+data/events.jsonl

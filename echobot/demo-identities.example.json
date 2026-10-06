@@ -1,0 +1,11 @@
+{
+  "_note": "Copy to demo-identities.json and fill in IDs from your Slack workspace. 'teams' is the production tenant mapping (Slack Connect workspace ID to tenant). 'users' and 'channels' are DEMO-ONLY overrides that let one personal workspace play both Echo and a customer.",
+  "teams": {},
+  "users": {
+    "U0000000ACME": { "callerType": "customer", "tenant": "acme-corp" }
+  },
+  "channels": {
+    "C0000000ACME": { "channelType": "slack_connect", "tenants": ["acme-corp"] },
+    "C000000GLOBX": { "channelType": "slack_connect", "tenants": ["globex"] }
+  }
+}

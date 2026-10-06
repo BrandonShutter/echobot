@@ -1,0 +1,42 @@
+{
+  "_note": "ILLUSTRATIVE. Stand-in for Echo's backoffice. Acme Corp and Globex are fictional tenants. CVE IDs use the fictional CVE-2026-9xxxx range and do not refer to real vulnerabilities.",
+  "tenants": [
+    {
+      "id": "acme-corp",
+      "name": "Acme Corp",
+      "plan": "Enterprise",
+      "licenseStatus": "active",
+      "licenseRenewsOn": "2027-03-31",
+      "registryNamespace": "acme-corp",
+      "imagesInUse": ["python:3.12", "python-fips:3.12", "nginx:1.27", "jdk-fips:openjdk-21"],
+      "url": "https://mock.echobot.local/retool/tenants/acme-corp",
+      "title": "Backoffice: Acme Corp tenant [illustrative]",
+      "openCves": {
+        "generatedAt": "2026-10-04T12:00:00Z",
+        "url": "https://mock.echobot.local/retool/tenants/acme-corp/cves",
+        "title": "Backoffice: Acme Corp open CVEs [illustrative]",
+        "cves": [
+          { "cve": "CVE-2026-90021", "severity": "high", "image": "python:3.12 (digest pulled 2026-09-20)", "status": "Patched in python:3.12 rebuilt 2026-09-29. Acme is still running the older digest; re-pull to resolve.", "firstSeen": "2026-09-22" },
+          { "cve": "CVE-2026-90044", "severity": "medium", "image": "nginx:1.27", "status": "Fix in progress, no patch published yet.", "firstSeen": "2026-10-01" }
+        ]
+      }
+    },
+    {
+      "id": "globex",
+      "name": "Globex",
+      "plan": "Growth",
+      "licenseStatus": "active",
+      "licenseRenewsOn": "2026-12-15",
+      "registryNamespace": "globex",
+      "imagesInUse": ["node:22", "postgres:16"],
+      "url": "https://mock.echobot.local/retool/tenants/globex",
+      "title": "Backoffice: Globex tenant [illustrative]",
+      "openCves": {
+        "generatedAt": "2026-10-04T12:00:00Z",
+        "url": "https://mock.echobot.local/retool/tenants/globex/cves",
+        "title": "Backoffice: Globex open CVEs [illustrative]",
+        "cves": []
+      }
+    }
+  ]
+}
